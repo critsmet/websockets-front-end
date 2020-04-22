@@ -3,14 +3,26 @@ import React, { useEffect, useState, useRef }from "react"
 import socketIOClient from "socket.io-client";
 import Login from "./login"
 import ChatRoom from "./chatroom"
+import Video from "./Video"
 
 const IndexPage = () => {
 
   const [user, setUser] = useState(null)
   const [users, setUsers] = useState([])
   const [messages, setMessages] = useState([])
+  //peer connection IDs are determined by the socketID of who started broadcasting
+  //so the person's own broadcast is their peerConnection ID
+  const broadcasterConnections = useRef([])
+  const watcherConnections = useRef([])
 
-  let socket = useRef(null)
+
+  //need to look more into why useRef is the better option here, again
+  //I think it's because the callback functions don't have access tot he socket state object
+  //because they do not update correctly
+  const socket = useRef(null)
+
+  const [streams, setStreams] = useState([])
+  //let's hold our peer connection in a ref as well, just in case
 
   useEffect(() => checkForLoggedInUser(), [])
 
@@ -35,6 +47,7 @@ const IndexPage = () => {
     emitSignup(username)
   }
 
+  //LET'S REFACTOR ALL OF THIS TO BE ITS OWN CLASS?
   const establishConnection = () => {
     socket.current = socketIOClient("http://localhost:4001")
     console.log("establishing connection!!");
@@ -76,13 +89,20 @@ const IndexPage = () => {
     //we could get away with just receiving the userId or socketId here, but for consistency we'll receive the userObj
     socket.current.on("userLogout", userObj => {
       console.log(`${userObj.username} just logged out`);
-      setUsers(prevState => {
-        return prevState.map(user => user.id !== userObj.id ? user : {...user, socketId: null})
+      watcherConnections.current = watcherConnections.current.filter(connectionObj => {
+        if (connectionObj.socketId !== userObj.socketId){
+          return true
+        } else {
+          connectionObj.connection.close()
+          setStreams(prevState => prevState.filter(streamObjs => streamObjs.socketId !== userObj.socketId))
+          return false
+        }
       })
+      setUsers(prevState => prevState.map(user => user.id !== userObj.id ? user : {...user, socketId: null}))
     })
     socket.current.on("allUsers", usersArray => {
       setUsers(usersArray)
-      console.log("From server - here are all these users have already signed up:", usersArray.map(user => user.username))
+      console.log("From server - here are all these users have already signed up:", usersArray)
     })
     socket.current.on("newMessage", messageObj => {
       //pessimistic rendering...maybe not the best idea? let's maybe clean this up later
@@ -93,13 +113,88 @@ const IndexPage = () => {
       setMessages(messagesArray)
       console.log("From server - here are all the messages already logged:", messagesArray);
     })
+    //WebRTC socket communications:
+    socket.current.on("offer", (socketId, description) => {
+      let newRemotePeerConnection = new RTCPeerConnection(config)
+
+      newRemotePeerConnection
+        .setRemoteDescription(description)
+        .then(() => newRemotePeerConnection.createAnswer())
+        .then(sdp => newRemotePeerConnection.setLocalDescription(sdp))
+        .then(() => socket.current.emit("answer", socketId, newRemotePeerConnection.localDescription))
+        .then(() => console.log("Should've sent the answer back!!!"))
+      watcherConnections.current = [...watcherConnections.current, {socketId, connection: newRemotePeerConnection}]
+
+      newRemotePeerConnection.onaddstream = event => {
+        console.log("Should be putting in a new stream!!", event);
+        setStreams(prevState => [...prevState, {socketId, stream: event.stream}])
+      }
+    })
+    socket.current.on("answer", (socketId, description) => {
+      console.log("DESCRIPTION BACK FROM THE ANSWERRRR:", description);
+      broadcasterConnections.current.find(connectionObj => connectionObj.socketId === socketId).connection.setRemoteDescription(description)
+      console.log("Awesome! Your connection should be established!");
+    })
+
+    socket.current.on("candidate", (socketId, candidate) => {
+      console.log("WOWOWOWOW NEW CANDIDATE ADDED~!!");
+      watcherConnections.current.find(connectionObj => connectionObj.socketId === socketId).connection.addIceCandidate(new RTCIceCandidate(candidate))
+    })
+  }
+
+  //all WebRTC peer connection code here:
+
+  const constraints = {
+      audio: true,
+      video: {
+        facingMode: "user",
+        width: { min: 620 },
+        height: { min: 480 }
+      }
+    }
+
+  const config = {iceServers: [{urls: ["stun:stun.1.google.com:19302"]}]}
+
+  const createOffer = (stream, watcherSocketId) => {
+    const newLocalPeerConnection = new RTCPeerConnection(config)
+    newLocalPeerConnection.addStream(stream)
+
+    newLocalPeerConnection.onicecandidate = event => {
+      console.log("ASKING FOR A CANDIDATE HERE!", event.candidate);
+      if (event.candidate) {
+        socket.current.emit("candidate", watcherSocketId, event.candidate);
+      }
+    };
+
+    newLocalPeerConnection
+      .createOffer()
+      .then(sdp => newLocalPeerConnection.setLocalDescription(sdp))
+      .then(() => socket.current.emit("offer", watcherSocketId, newLocalPeerConnection.localDescription))
+      .then(() => console.log(`Sent! Your Broadcast is being establish to ${users.find(user => user.socketId === watcherSocketId).username}!`))
+
+    broadcasterConnections.current =  [...broadcasterConnections.current, {socketId: watcherSocketId, connection: newLocalPeerConnection}]
+  }
+
+  const startBroadcast = () => {
+    console.log("Start the broadcast!");
+    //because we want everyone logged in to see us, we are going to iterate over every user in the array and make offers for them.
+    //only create offers for users that have a socketId, IE logged in
+
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then(stream => {
+        setStreams(prevState => [...prevState, {socketId: socket.current.id, stream}])
+        users.filter(user => user.socketId).forEach(user => createOffer(stream, user.socketId))
+      })
   }
 
 
   return (
       <div style={{ textAlign: "center" }}>
         {user === null && <Login signupUser={signupUser}/>}
-        {user !== null && <ChatRoom user={user} users={users} messages={messages} setMessages={setMessages} socket={socket}/>}
+        {user !== null && <ChatRoom startBroadcast={startBroadcast} user={user} users={users} messages={messages} setMessages={setMessages} socket={socket}/>}
+        {streams.map(streamObj => <Video key={streamObj.socketId} stream={streamObj.stream}/>)}
+        {  console.log(watcherConnections)}
+        {  console.log(broadcasterConnections)}
       </div>
   );
 }

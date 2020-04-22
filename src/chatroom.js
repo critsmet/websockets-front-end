@@ -1,6 +1,6 @@
 import React, {useState} from 'react'
 
-const ChatRoom = ({user, users, socket, messages}) => {
+const ChatRoom = ({user, users, socket, messages, startBroadcast}) => {
 
   const [message, changeMessage] = useState("")
 
@@ -34,6 +34,7 @@ const ChatRoom = ({user, users, socket, messages}) => {
   return(
     <div id="chatroom">
       {renderUsers()}
+      <p onClick={startBroadcast}>CAMERA BUTTON</p>
       <div id="messages-container">
       </div>
       <div id="input-field">
