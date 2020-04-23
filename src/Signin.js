@@ -1,6 +1,13 @@
 import React, {useState} from 'react'
 
-const Login = ({signupUser}) => {
+import SocketAdapter from './SocketAdapter'
+
+const Signin = ({socketRef, objToInitSocketAdapter}) => {
+
+  const signupUser = (username) => {
+    socketRef.current = SocketAdapter(objToInitSocketAdapter)
+    socketRef.current.connection.emit("initializeSession", username)
+  }
 
   const [text, inputText] = useState('')
 
@@ -13,4 +20,4 @@ const Login = ({signupUser}) => {
     )
 }
 
-export default Login
+export default Signin

@@ -1,6 +1,19 @@
 import React, {useState} from 'react'
 
-const ChatRoom = ({user, users, socket, messages, startBroadcast}) => {
+import VideoStream from "./VideoStream"
+
+import {createOffer} from "./CreateOffer"
+
+const constraints = {
+    audio: true,
+    video: {
+      facingMode: "user",
+      width: { min: 620 },
+      height: { min: 480 }
+    }
+  }
+
+const ChatRoom = ({user, users, socketRef, messages, streamObjs, setStreamObjs, broadcasterConnections}) => {
 
   const [message, changeMessage] = useState("")
 
@@ -11,30 +24,35 @@ const ChatRoom = ({user, users, socket, messages, startBroadcast}) => {
   }
 
   const handleSend = () => {
-    socket.current.emit("sentMessage", message)
+    socketRef.current.connection.emit("sentMessage", message)
     changeMessage("")
   }
 
-  //make it faster to get authored messages by id, is this the best way?
-  const idsUsernames = () => {
-    let idsUsernamesObj = {}
-    //include the client's user here
-    let usersArray = [...users, user]
-    usersArray.forEach(user => idsUsernamesObj[`${user.id}`] = user.username)
-    return idsUsernamesObj
-  }
-
   const renderMessages = () => {
-    let idsUsernamesObj = idsUsernames()
     return messages.map(message => {
-      return (<div>{idsUsernamesObj[`${message.userId}`]} wrote: {message.message}</div>)
+      return (<div>{message.username} wrote: {message.message}</div>)
     })
   }
+
+  const startBroadcast = () => {
+
+    console.log("Start the broadcast!");
+    //because we want everyone logged in to see us, we are going to iterate over every user in the array and make offers for them.
+    //only create offers for users that have a socketId, IE logged in
+
+    navigator.mediaDevices.getUserMedia(constraints)
+    .then(stream => {
+      socketRef.current.setClientStream(stream)
+      setStreamObjs(prevState => [...prevState, {socketId: socketRef.current.connection.id, stream}])
+      users.filter(user => user.socketId).forEach(user => createOffer({username: user.username, stream, socketConnection: socketRef.current.connection, watcherSocketId: user.socketId, broadcasterConnections}))
+    })
+  }
+
 
   return(
     <div id="chatroom">
       {renderUsers()}
-      <p onClick={startBroadcast}>CAMERA BUTTON</p>
+      <p onClick={() => startBroadcast(socketRef.current.id)}>CAMERA BUTTON</p>
       <div id="messages-container">
       </div>
       <div id="input-field">
@@ -42,6 +60,7 @@ const ChatRoom = ({user, users, socket, messages, startBroadcast}) => {
         <button onClick={() => handleSend()}>Send</button>
         {renderMessages()}
       </div>
+      {streamObjs.map(streamObj => <VideoStream key={streamObj.websocketId} streamObj={streamObj}/>) }
     </div>
   )
 }
