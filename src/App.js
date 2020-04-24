@@ -24,7 +24,7 @@ const IndexPage = () => {
   const socketRef = useRef()
 
   const objToInitSocketAdapter = {
-    url: "http://localhost:4001/",
+    url: "https://chatapp-back-end.herokuapp.com/",
     setUser,
     usersRef,
     setMessages,
