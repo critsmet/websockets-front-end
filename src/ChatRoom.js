@@ -4,7 +4,7 @@ import VideoStream from "./VideoStream"
 
 import cameraIcon from "./video.png"
 
-const ChatRoom = ({user, usersRef, socketRef, messages, streamObjs, setStreamObjs, broadcasterConnections}) => {
+const ChatRoom = ({user, usersRef, socketRef, messages, streamObjs, setStreamObjs, broadcasterConnectionsRef}) => {
 
   const [message, changeMessage] = useState("")
 
@@ -40,8 +40,8 @@ const ChatRoom = ({user, usersRef, socketRef, messages, streamObjs, setStreamObj
 
   const endBroadcast = () => {
     setStreamObjs(prevState => prevState.filter(streamObj => streamObj.socketId !== socketRef.current.id))
-    broadcasterConnections.current.forEach(connectionObj => connectionObj.connection.close())
-    broadcasterConnections.current = []
+    broadcasterConnectionsRef.current.forEach(connectionObj => connectionObj.connection.close())
+    broadcasterConnectionsRef.current = []
     socketRef.current.emit("endBroadcast")
   }
 

@@ -1,7 +1,5 @@
 import socketIOClient from "socket.io-client";
 
-import {createOffer} from "./CreateOffer"
-
 const constraints = {
     audio: true,
     video: {
@@ -11,16 +9,34 @@ const constraints = {
     }
   }
 
-const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broadcasterConnections, watcherConnections}) => {
+const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broadcasterConnectionsRef, watcherConnectionsRef}) => {
 
   const socket = socketIOClient(url)
 
   let clientStream = null
 
+  const createOffer = (user) => {
+    const newLocalPeerConnection = new RTCPeerConnection({iceServers: [{urls: ["stun:stun.1.google.com:19302"]}]})
+
+    broadcasterConnectionsRef.current =  [...broadcasterConnectionsRef.current, {socketId: user.socketId, connection: newLocalPeerConnection}]
+
+    for (const track of clientStream.getTracks()){
+      newLocalPeerConnection.addTrack(track, clientStream)
+    }
+
+    newLocalPeerConnection.onicecandidate = (event) => event.candidate && (socket.emit("candidate", user.socketId, "fromBroadcaster", event.candidate) && console.log("GOT SOME ICE CANDIDATES FOR YA"))
+
+    newLocalPeerConnection
+      .createOffer()
+      .then(sdp => newLocalPeerConnection.setLocalDescription(sdp))
+      .then(() => socket.emit("offer", user.socketId, newLocalPeerConnection.localDescription))
+      .then(() => console.log(`Sent the offer! Your broadcast is being establish to ${user.username}!`))
+  }
+
   //we only want to call this if the user logs out.
   const closeBroadcasterConnection = (socketId) => {
-    console.log("broadcaster connections before", broadcasterConnections);
-    broadcasterConnections.current = broadcasterConnections.current.filter(connectionObj => {
+    console.log("broadcaster connections before", broadcasterConnectionsRef);
+    broadcasterConnectionsRef.current = broadcasterConnectionsRef.current.filter(connectionObj => {
       if (connectionObj.socketId !== socketId){
         return true
       } else {
@@ -29,13 +45,13 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
         return false
       }
     })
-    console.log("broadcaster connections after", broadcasterConnections);
+    console.log("broadcaster connections after", broadcasterConnectionsRef);
   }
 
   const closeWatcherConnection = (socketId) => {
     console.log(`Removing streams and socketIds matched with ${socketId}`);
-    console.log("watcher connections and streams before", watcherConnections);
-    watcherConnections.current = watcherConnections.current.filter(connectionObj => {
+    console.log("watcher connections and streams before", watcherConnectionsRef);
+    watcherConnectionsRef.current = watcherConnectionsRef.current.filter(connectionObj => {
       if (connectionObj.socketId !== socketId){
         return true
       } else {
@@ -44,7 +60,7 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
         return false
       }
     })
-    console.log("watcher connections and streams after", watcherConnections);
+    console.log("watcher connections and streams after", watcherConnectionsRef);
   }
 
   //add all listeners
@@ -62,7 +78,7 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
   socket.on("newUserJoin", userObj => {
     usersRef.current = [ ...usersRef.current, userObj ]
     //only send an offer if there is a clientStream currently
-    clientStream && createOffer({stream: clientStream, socketConnection: socket, watcherSocketId: userObj.socketId, broadcasterConnections, username: userObj.username})
+    clientStream && createOffer({stream: clientStream, socketConnection: socket, watcherSocketId: userObj.socketId, broadcasterConnectionsRef, username: userObj.username})
     console.log(`${userObj.username} just joined!`)
   })
 
@@ -95,7 +111,7 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
       .then(stream => {
         clientStream = stream
         setStreamObjs(prevState => [...prevState, {socketId: socket.id, stream}])
-        usersRef.current.filter(user => user.socketId).forEach(user => createOffer({username: user.username, stream, socketConnection: socket, watcherSocketId: user.socketId, broadcasterConnections}))
+        usersRef.current.filter(user => user.socketId).forEach(createOffer)
       })
     } else {
       alert("Max amount of videos broadcasted")
@@ -104,7 +120,9 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
   socket.on("offer", (socketId, description) => {
     let newRemotePeerConnection = new RTCPeerConnection({iceServers: [{urls: ["stun:stun.1.google.com:19302"]}]})
 
-    watcherConnections.current = [...watcherConnections.current, {socketId, connection: newRemotePeerConnection}]
+    watcherConnectionsRef.current = [...watcherConnectionsRef.current, {socketId, connection: newRemotePeerConnection}]
+
+    newRemotePeerConnection.onicecandidate = (event) => event.candidate && socket.emit("candidate", socketId, "fromWatcher", event.candidate)
 
     newRemotePeerConnection
       .setRemoteDescription(description)
@@ -112,7 +130,7 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
       .then(sdp => newRemotePeerConnection.setLocalDescription(sdp))
       .then(() => socket.emit("answer", socketId, newRemotePeerConnection.localDescription))
       .then(() => console.log("Received offer! Sending back answer!" ))
-    console.log("HERE ARE YOUR WATCHER CONNETIONS AND STREAMS", watcherConnections);
+    console.log("HERE ARE YOUR WATCHER CONNETIONS AND STREAMS", watcherConnectionsRef);
     newRemotePeerConnection.ontrack = event => {
       console.log(event.streams);
       //only add to streams array after the audio AND visual have been added
@@ -122,20 +140,30 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
   })
 
   socket.on("answer", (socketId, description) => {
-    broadcasterConnections.current.find(connectionObj => connectionObj.socketId === socketId).connection.setRemoteDescription(description)
-    console.log("Awesome! Your connection should be established! HERE ARE YOUR BROADCASTER CONNECTIONS", broadcasterConnections);
+    broadcasterConnectionsRef.current.find(connectionObj => connectionObj.socketId === socketId).connection.setRemoteDescription(description)
+    console.log("Awesome! Your connection should be established!");
   })
 
-  socket.on("candidate", (socketId, candidate) => {
-    console.log("Receiving candidate event from broadcaster");
-    watcherConnections.current.find(connectionObj => connectionObj.socketId === socketId).connection.addIceCandidate(new RTCIceCandidate(candidate))
+  socket.on("candidate", (socketId, sender, candidate) => {
+
+    let ref = sender === "fromWatcher" ? broadcasterConnectionsRef : watcherConnectionsRef
+
+    ref.current.find(connectionObj => connectionObj.socketId === socketId).connection.addIceCandidate(new RTCIceCandidate(candidate))
+    .then(
+                () => console.log("addIceCandidate success! Received candidate " + sender),
+                error =>
+                    console.error(
+                        "failed to add ICE Candidate",
+                        error.toString()
+                    )
+            );
   })
 
   socket.on("broadcastEnded", (socketId) => {
-    console.log("About to remove watcher connection", watcherConnections.current);
+    console.log("About to remove watcher connection", watcherConnectionsRef.current);
     closeWatcherConnection(socketId)
     setStreamObjs(prevState => prevState.filter(streamObj => streamObj.socketId !== socketId))
-    console.log("Removed watcher connection", watcherConnections.current);
+    console.log("Removed watcher connection", watcherConnectionsRef.current);
   })
 
   //return socket object

@@ -16,21 +16,21 @@ const IndexPage = () => {
 
   //we'll store our connections in Refs, and we'll store them based on who is broadcating and who is watching
   //if the client is not broadcasting, they will have no broadcaster connections, but will automatically have watcher connections for those broadcasting
-  const broadcasterConnections = useRef([])
-  const watcherConnections = useRef([])
+  const broadcasterConnectionsRef = useRef([])
+  const watcherConnectionsRef = useRef([])
 
   const usersRef = useRef([])
 
   const socketRef = useRef()
 
   const objToInitSocketAdapter = {
-    url: "https://chatapp-back-end.herokuapp.com/",
+    url: "http://localhost:4001/",
     setUser,
     usersRef,
     setMessages,
     setStreamObjs,
-    broadcasterConnections,
-    watcherConnections
+    broadcasterConnectionsRef,
+    watcherConnectionsRef
   }
   //need to look more into why useRef is the better option here, again
   //I think it's because the callback functions in useEffect don't have access tot he socket state object
@@ -52,7 +52,7 @@ const IndexPage = () => {
             socketRef={socketRef}
             streamObjs={streamObjs}
             setStreamObjs={setStreamObjs}
-            broadcasterConnections={broadcasterConnections}
+            broadcasterConnectionsRef={broadcasterConnectionsRef}
             />
         }
       </div>

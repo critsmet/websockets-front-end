@@ -1,8 +1,23 @@
-import React, {useState} from 'react'
+import React, {useState, useEffect} from 'react'
 
 const Signin = ({socketRef, usersRef}) => {
 
-  const signupUser = (username) => {
+  const [username, changeUsername] = useState('')
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    const listener = event => {
+      if (event.code === "Enter" || event.code === "NumpadEnter") {
+        signupUser()
+      }
+    };
+    document.addEventListener("keydown", listener);
+    return () => {
+      document.removeEventListener("keydown", listener);
+    };
+  }, []);
+
+  const signupUser = () => {
     if (username === "" ) {
       setMessage("please enter a handle")
     } else if (usersRef.current.find(user=> user.username === username)){
@@ -12,9 +27,6 @@ const Signin = ({socketRef, usersRef}) => {
     }
   }
 
-  const [handle, changeHandle] = useState('')
-  const [message, setMessage] = useState('')
-
   const formatInput = (value) => {
     console.log(value);
     setMessage('')
@@ -23,9 +35,9 @@ const Signin = ({socketRef, usersRef}) => {
     } else if (value.match(/\W/)){
       setMessage("invalid character")
     } else if (value === ""){
-      changeHandle(value)
+      changeUsername(value)
     } else {
-      changeHandle("@" + value)
+      changeUsername("@" + value)
     }
   }
 
@@ -38,10 +50,10 @@ const Signin = ({socketRef, usersRef}) => {
           type="text"
           className="db w-75 mb3 h3 bg-washed-yellow fw2 grow tc f2"
           spellCheck="false"
-          value={handle}
+          value={username}
         />
         <input
-          onClick={(e) => signupUser(handle)}
+          onClick={signupUser}
           type="button"
           value="join"
           className="db w-25 h2 p3 br-pill white bg-dark-gray bg-animate hover-bg-mid-gray pointer tc f4"
