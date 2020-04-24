@@ -8,7 +8,6 @@ import SocketAdapter from './SocketAdapter'
 const IndexPage = () => {
 
   const [user, setUser] = useState(null)
-  const [users, setUsers] = useState([])
   const [messages, setMessages] = useState([])
 
   //streams will be stored in state and passed down, wondering if this could be Ref too, but we want this to cause a re-render
@@ -20,29 +19,34 @@ const IndexPage = () => {
   const broadcasterConnections = useRef([])
   const watcherConnections = useRef([])
 
+  const usersRef = useRef([])
 
-  //need to look more into why useRef is the better option here, again
-  //I think it's because the callback functions in useEffect don't have access tot he socket state object
-  //because they are out of scope or are stored in a previous "version" of the component
   const socketRef = useRef()
 
   const objToInitSocketAdapter = {
     url: "http://localhost:4001",
     setUser,
-    setUsers,
+    usersRef,
     setMessages,
     setStreamObjs,
     broadcasterConnections,
     watcherConnections
   }
+  //need to look more into why useRef is the better option here, again
+  //I think it's because the callback functions in useEffect don't have access tot he socket state object
+  //because they are out of scope or are stored in a previous "version" of the component
 
+  useEffect(() => {
+    socketRef.current = SocketAdapter(objToInitSocketAdapter)
+  }, [])
+  
   return (
-      <div style={{ textAlign: "center" }}>
+      <div style={{ textAlign: "center", width: "100vw", height: "100vh"}} className={"fl w-100 pa2"}>
         {user === null ?
-          <Signin socketRef={socketRef} objToInitSocketAdapter={objToInitSocketAdapter}/> :
+          <Signin socketRef={socketRef} usersRef={usersRef}/> :
           <ChatRoom
             user={user}
-            users={users}
+            usersRef={usersRef}
             messages={messages}
             setMessages={setMessages}
             socketRef={socketRef}
