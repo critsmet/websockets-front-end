@@ -24,7 +24,7 @@ const IndexPage = () => {
   const socketRef = useRef()
 
   const objToInitSocketAdapter = {
-    url: "http://localhost:4001",
+    url: "https://chatapp-back-end.herokuapp.com/",
     setUser,
     usersRef,
     setMessages,
@@ -39,7 +39,7 @@ const IndexPage = () => {
   useEffect(() => {
     socketRef.current = SocketAdapter(objToInitSocketAdapter)
   }, [])
-  
+
   return (
       <div style={{ textAlign: "center", width: "100vw", height: "100vh"}} className={"fl w-100 pa2"}>
         {user === null ?

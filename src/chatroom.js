@@ -2,8 +2,6 @@ import React, {useState, useEffect, useRef} from 'react'
 
 import VideoStream from "./VideoStream"
 
-import {createOffer} from "./CreateOffer"
-
 import cameraIcon from "./video.png"
 
 const ChatRoom = ({user, usersRef, socketRef, messages, streamObjs, setStreamObjs, broadcasterConnections}) => {
@@ -67,6 +65,7 @@ const ChatRoom = ({user, usersRef, socketRef, messages, streamObjs, setStreamObj
           <div id="message-input-field" className="flex items-center justify-around h-10">
             <img
               src={cameraIcon}
+              alt="toggle camera"
               className={`w-auto pt2 h2 pointer${checkForClientBroadcast() ? " o-40" : ""}`}
               onClick={() => toggleBroadcast()}
             />

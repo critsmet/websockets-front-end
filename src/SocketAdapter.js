@@ -17,10 +17,6 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
 
   let clientStream = null
 
-  const setClientStream = (streamObj) => {
-    clientStream = streamObj
-  }
-
   //we only want to call this if the user logs out.
   const closeBroadcasterConnection = (socketId) => {
     console.log("broadcaster connections before", broadcasterConnections);
