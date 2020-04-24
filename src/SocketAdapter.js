@@ -104,13 +104,14 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
   socket.on("offer", (socketId, description) => {
     let newRemotePeerConnection = new RTCPeerConnection({iceServers: [{urls: ["stun:stun.1.google.com:19302"]}]})
 
+    watcherConnections.current = [...watcherConnections.current, {socketId, connection: newRemotePeerConnection}]
+
     newRemotePeerConnection
       .setRemoteDescription(description)
       .then(() => newRemotePeerConnection.createAnswer())
       .then(sdp => newRemotePeerConnection.setLocalDescription(sdp))
       .then(() => socket.emit("answer", socketId, newRemotePeerConnection.localDescription))
       .then(() => console.log("Received offer! Sending back answer!" ))
-    watcherConnections.current = [...watcherConnections.current, {socketId, connection: newRemotePeerConnection}]
     console.log("HERE ARE YOUR WATCHER CONNETIONS AND STREAMS", watcherConnections);
     newRemotePeerConnection.ontrack = event => {
       console.log(event.streams);
@@ -126,7 +127,7 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
   })
 
   socket.on("candidate", (socketId, candidate) => {
-    console.log("New candidate!!");
+    console.log("Receiving candidate event from broadcaster");
     watcherConnections.current.find(connectionObj => connectionObj.socketId === socketId).connection.addIceCandidate(new RTCIceCandidate(candidate))
   })
 
