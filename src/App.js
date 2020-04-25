@@ -24,7 +24,7 @@ const IndexPage = () => {
   const socketRef = useRef()
 
   const objToInitSocketAdapter = {
-    url: "https://chatapp-back-end.herokuapp.com/",
+    url: process.env.NODE_ENV === "production" ? "https://chatapp-back-end.herokuapp.com" : "http://localhost:4001",
     setUser,
     usersRef,
     setMessages,

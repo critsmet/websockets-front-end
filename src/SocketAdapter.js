@@ -15,8 +15,12 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
 
   let clientStream = null
 
+  let iceServersConfig = null
+
   const createOffer = (user) => {
-    const newLocalPeerConnection = new RTCPeerConnection({iceServers: [{urls: ["stun:stun.1.google.com:19302"]}]})
+    console.log("iceServerConfig Received?", !!iceServersConfig, typeof(iceServerConfig));
+
+    const newLocalPeerConnection = new RTCPeerConnection({iceServers: iceServersConfig})
 
     broadcasterConnectionsRef.current =  [...broadcasterConnectionsRef.current, {socketId: user.socketId, connection: newLocalPeerConnection}]
 
@@ -65,6 +69,10 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
 
   //add all listeners
 
+  socket.on("iceServers", iceServersArray => {
+    console.log("SETTIN ICE SERVERS", iceServersArray);
+    iceServersConfig = iceServersArray
+  })
   //before the user connects, a list of current users is sent to them
   socket.on("loggedInUsers", usersArray => usersRef.current = usersArray)
 
