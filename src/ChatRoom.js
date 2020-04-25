@@ -46,6 +46,7 @@ const ChatRoom = ({user, usersRef, socketRef, messages, streamObjs, setStreamObj
   }
 
   const getUsernameWithSocketId = (id) => {
+    console.log(usersRef.current, streamObjs, id);
     return [...usersRef.current, user].find(user => user.socketId === id).username
   }
 

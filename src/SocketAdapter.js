@@ -18,7 +18,7 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
   let iceServersConfig = null
 
   const createOffer = (user) => {
-    console.log("iceServerConfig Received?", !!iceServersConfig, typeof(iceServerConfig));
+    console.log("iceServerConfig Received?", !!iceServersConfig, typeof(iceServersConfig));
 
     const newLocalPeerConnection = new RTCPeerConnection({iceServers: iceServersConfig})
 
@@ -70,7 +70,6 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
   //add all listeners
 
   socket.on("iceServers", iceServersArray => {
-    console.log("SETTIN ICE SERVERS", iceServersArray);
     iceServersConfig = iceServersArray
   })
   //before the user connects, a list of current users is sent to them
@@ -126,8 +125,8 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
     }
   })
   socket.on("offer", (socketId, description) => {
-    let newRemotePeerConnection = new RTCPeerConnection({iceServers: [{urls: ["stun:stun.1.google.com:19302"]}]})
-
+    let newRemotePeerConnection = new RTCPeerConnection({iceServers: iceServersConfig})
+    console.log("andd we have the ice servers here?" iceServerConfig);
     watcherConnectionsRef.current = [...watcherConnectionsRef.current, {socketId, connection: newRemotePeerConnection}]
 
     newRemotePeerConnection.onicecandidate = (event) => event.candidate && socket.emit("candidate", socketId, "fromWatcher", event.candidate)
