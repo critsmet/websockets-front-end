@@ -1,6 +1,6 @@
 import React, {useRef, useEffect} from 'react'
 
-function VideoStream({streamObj, username}) {
+function VideoStream({streamObj, user, loggedInUser}) {
   const videoEl = useRef(null)
 
   useEffect(() => {
@@ -10,15 +10,16 @@ function VideoStream({streamObj, username}) {
       video.play()
     }, [videoEl])
 
+    console.log(user, loggedInUser);
   return (
     <div id={`video-div-${streamObj.socketId}`} className="relative w-100 h-100 ">
-      <div className="absolute top-1 tc w-100 white">{username}</div>
+      <div className="absolute top-1 tc w-100 white">{user.username}</div>
       <video
         className="h-75"
         id={`stream-${streamObj.socketId}`}
         ref={videoEl}
         autoPlay={true}
-        muted={"muted"}
+        muted={user.socketId === loggedInUser.socketId ? "muted" : null}
       />
     </div>
   )

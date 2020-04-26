@@ -20,7 +20,6 @@ const IndexPage = () => {
   const watcherConnectionsRef = useRef([])
 
   const usersRef = useRef([])
-
   const socketRef = useRef()
 
   const objToInitSocketAdapter = {

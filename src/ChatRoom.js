@@ -17,7 +17,8 @@ const ChatRoom = ({user, usersRef, socketRef, messages, streamObjs, setStreamObj
    messagesContainerRef.current.scrollTo({top: messagesContainerRef.current.scrollHeight, behavior: "smooth"})
  }, [messages]);
 
-  const handleSend = () => {
+  const handleSend = (e) => {
+    e.preventDefault()
     socketRef.current.emit("sentMessage", message)
     changeMessage("")
   }
@@ -45,10 +46,12 @@ const ChatRoom = ({user, usersRef, socketRef, messages, streamObjs, setStreamObj
     socketRef.current.emit("endBroadcast")
   }
 
-  const getUsernameWithSocketId = (id) => {
+  const getUserWithSocketId = (id) => {
     console.log(usersRef.current, streamObjs, id);
-    return [...usersRef.current, user].find(user => user.socketId === id).username
+    return [...usersRef.current, user].find(user => user.socketId === id)
   }
+
+  const findStreamByPos = (pos) => streamObjs.find(obj => obj.pos === pos)
 
 
   return(
@@ -56,14 +59,14 @@ const ChatRoom = ({user, usersRef, socketRef, messages, streamObjs, setStreamObj
       <div id="chatroom" className="h-100 w-100 flex pa4">
         <div id="column-1" className="flex-column w-third">
           <div id="square1" className="w-100 h-50 mt3 ">
-            {streamObjs[0] && <VideoStream streamObj={streamObjs[0]} username={getUsernameWithSocketId(streamObjs[0].socketId)}/>}
+            {findStreamByPos(1) && <VideoStream streamObj={findStreamByPos(1)} user={getUserWithSocketId(findStreamByPos(1).socketId)} loggedInUser={user}/>}
           </div>
           <div id="square2" className="w-100 h-50 mb3 mb6">
-            {streamObjs[2] && <VideoStream streamObj={streamObjs[2]} username={getUsernameWithSocketId(streamObjs[2].socketId)}/>}
+            {findStreamByPos(4) && <VideoStream streamObj={findStreamByPos(4)} user={getUserWithSocketId(findStreamByPos(4).socketId)} loggedInUser={user}/>}
           </div>
         </div>
         <div id="column-2" className="w-third h-100 flex flex-column-reverse pb4">
-          <div id="message-input-field" className="flex items-center justify-around h-10">
+          <form id="message-input-field" onSubmit={handleSend}className="flex items-center justify-around h-10">
             <img
               src={cameraIcon}
               alt="toggle camera"
@@ -78,21 +81,21 @@ const ChatRoom = ({user, usersRef, socketRef, messages, streamObjs, setStreamObj
               spellCheck="false"
             />
             <input
-              type="button" onClick={() => handleSend()}
+              type="button"
               value="send"
               className="dib w3 h2 br-pill white bg-dark-gray bg-animate hover-bg-mid-gray pointer tc f5"
             />
-          </div>
+          </form>
           <div id="messages-container" ref={messagesContainerRef} className="mb3 pl4 pr4 flex h-auto flex-column-reverse overflow-container tl">
             {renderMessages().reverse()}
           </div>
-        </div>
-        <div id="column-3" className="flex-column w-third">
-          <div id="square4" className="w-100 h-50">
-            {streamObjs[3] && <VideoStream streamObj={streamObjs[3]} username={getUsernameWithSocketId(streamObjs[3].socketId)}/>}
           </div>
-          <div id="square5" className="w-100 h-50 mt5 mb6">
-            {streamObjs[1] && <VideoStream streamObj={streamObjs[1]} username={getUsernameWithSocketId(streamObjs[1].socketId)}/>}
+        <div id="column-3" className="flex-column w-third">
+          <div id="square3" className="w-100 h-50 mt3 ">
+            {findStreamByPos(3) && <VideoStream streamObj={findStreamByPos(3)} user={getUserWithSocketId(findStreamByPos(3).socketId)}  loggedInUser={user}/>}
+          </div>
+          <div id="square4" className="w-100 h-50 mb3 mb6">
+            {findStreamByPos(2) && <VideoStream streamObj={findStreamByPos(2)} user={getUserWithSocketId(findStreamByPos(2).socketId)} loggedInUser={user} />}
           </div>
         </div>
       </div>

@@ -15,6 +15,8 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
 
   let clientStream = null
 
+  let streamPos = 1
+
   let iceServersConfig = null
 
   const createOffer = (user) => {
@@ -72,11 +74,11 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
   socket.on("iceServers", iceServersArray => {
     iceServersConfig = iceServersArray
   })
-  //before the user connects, a list of current users is sent to them
-  socket.on("loggedInUsers", usersArray => usersRef.current = usersArray)
 
-  socket.on("initializedSession", (userObj, messagesArray) => {
+  socket.on("initializedSession", (userObj, usersArray, messagesArray) => {
+    console.log(userObj, usersArray, messagesArray);
     setUser(userObj)
+    usersRef.current = usersArray
     setMessages(messagesArray)
     console.log(`Yay! You've initialized a session with the username ${userObj.username}!`);
   })
@@ -85,7 +87,7 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
   socket.on("newUserJoin", userObj => {
     usersRef.current = [ ...usersRef.current, userObj ]
     //only send an offer if there is a clientStream currently
-    clientStream && createOffer({stream: clientStream, socketConnection: socket, watcherSocketId: userObj.socketId, broadcasterConnectionsRef, username: userObj.username})
+    clientStream && createOffer(userObj)
     console.log(`${userObj.username} just joined!`)
   })
 
@@ -117,7 +119,10 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
       navigator.mediaDevices.getUserMedia(constraints)
       .then(stream => {
         clientStream = stream
-        setStreamObjs(prevState => [...prevState, {socketId: socket.id, stream}])
+        console.log("getting stream", stream);
+        setStreamObjs(prevState => [...prevState, {socketId: socket.id, stream, pos: streamPos}])
+        streamPos = streamPos === 4 ? 1 : streamPos + 1
+        console.log("stream position", streamPos);
         usersRef.current.filter(user => user.socketId).forEach(createOffer)
       })
     } else {
@@ -142,7 +147,13 @@ const SocketAdapter = ({url, setUser, usersRef, setMessages, setStreamObjs, broa
       console.log(event.streams);
       //only add to streams array after the audio AND visual have been added
       //the first one is always audio, so if we check for video we know both are added
-      event.track.kind === "video" && setStreamObjs(prevState => [...prevState, {socketId, stream: event.streams[0]}])
+      console.log("Woweee adding a track!");
+      if (event.track.kind === "video"){
+        let pos = streamPos
+        setStreamObjs(prevState => [...prevState, {socketId, stream: event.streams[0], pos: pos}])
+        console.log("Stream pos", pos);
+        streamPos = streamPos === 4 ? 1 : streamPos + 1
+      }
     }
   })
 

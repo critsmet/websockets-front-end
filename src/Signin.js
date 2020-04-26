@@ -5,19 +5,8 @@ const Signin = ({socketRef, usersRef}) => {
   const [username, changeUsername] = useState('')
   const [message, setMessage] = useState('')
 
-  useEffect(() => {
-    const listener = event => {
-      if (event.code === "Enter" || event.code === "NumpadEnter") {
-        signupUser()
-      }
-    };
-    document.addEventListener("keydown", listener);
-    return () => {
-      document.removeEventListener("keydown", listener);
-    };
-  }, []);
-
-  const signupUser = () => {
+  const signupUser = (e) => {
+    e.preventDefault()
     if (username === "" ) {
       setMessage("please enter a handle")
     } else if (usersRef.current.find(user=> user.username === username)){
@@ -42,8 +31,9 @@ const Signin = ({socketRef, usersRef}) => {
   }
 
     return (
-      <div id="signup" className="w-40 flex flex-column items-center">
+      <div id="signup" className="w-40">
         <p className="h1 pt1">{message}</p>
+        <form id="signin-form" className="flex flex-column items-center" onSubmit={signupUser}>
         <input
           placeholder="enter a handle"
           onChange={(e => formatInput(e.target.value[0] === "@" ? e.target.value.slice(1) : e.target.value))}
@@ -53,11 +43,11 @@ const Signin = ({socketRef, usersRef}) => {
           value={username}
         />
         <input
-          onClick={signupUser}
-          type="button"
+          type="submit"
           value="join"
           className="db w-25 h2 p3 br-pill white bg-dark-gray bg-animate hover-bg-mid-gray pointer tc f4"
         />
+        </form>
       </div>
     )
 }
