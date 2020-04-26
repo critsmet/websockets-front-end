@@ -71,7 +71,7 @@ const ChatRoom = ({user, usersRef, socketRef, messages, streamObjs, setStreamObj
               src={cameraIcon}
               alt="toggle camera"
               className={`w-auto pt2 h2 pointer${checkForClientBroadcast() ? " o-40" : ""}`}
-              onClick={() => toggleBroadcast()}
+              onClick={toggleBroadcast}
             />
             <input
               onChange={(e) => changeMessage(e.target.value)}
@@ -81,7 +81,7 @@ const ChatRoom = ({user, usersRef, socketRef, messages, streamObjs, setStreamObj
               spellCheck="false"
             />
             <input
-              type="button"
+              type="submit"
               value="send"
               className="dib w3 h2 br-pill white bg-dark-gray bg-animate hover-bg-mid-gray pointer tc f5"
             />
