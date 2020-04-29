@@ -1,0 +1,117 @@
+import React, {useState, useEffect, useRef} from 'react'
+
+import VideoStream from "./VideoStream"
+
+import {useDispatch, useSelector} from "react-redux"
+
+import cameraIcon from "../media/video.png"
+
+const ChatRoom = ({broadcasterConnections}) => {
+
+  const dispatch = useDispatch()
+  const socket = useSelector(state => state.socket)
+  const user = useSelector(state => state.user)
+  const users = useSelector(state => state.users)
+  const messages = useSelector(state => state.messages)
+  const streams = useSelector(state => state.streams)
+  const clientStream = useSelector(state => state.streams).find(stream => stream.socketId === socket.id)
+
+  const [message, changeMessage] = useState("")
+
+  const messagesContainerRef = useRef()
+
+  useEffect(() => {
+    //scroll to the bottom of the chat whenever a new message comes in
+   messagesContainerRef.current.scrollTo({top: messagesContainerRef.current.scrollHeight, behavior: "smooth"})
+ }, [messages]);
+
+  const handleSend = (e) => {
+    e.preventDefault()
+    socket.emit("sentMessage", message)
+    changeMessage("")
+  }
+
+  const toggleBroadcast = () =>  clientStream ? endBroadcast() : socket.emit("requestBroadcast")
+
+  const endBroadcast = () => {
+    //if we had kept the broadcaster connections in the reducer, we could've used useSelector to grab them here
+    //see lines 17-20 in App.js for reason why we used a ref instead of redux
+    broadcasterConnections.current.forEach(connectionObj => connectionObj.connection.close())
+    broadcasterConnections.current = []
+    dispatch({type: "removeStream", payload: socket.id})
+    socket.emit("endBroadcast")
+  }
+
+  const renderStream = (pos) => {
+    //console.log(streams);
+    let stream = streams.find(obj => obj.pos === pos)
+    if (stream){
+      //find the streamer
+      let streamer = [...users, user].find(user => user.socketId === stream.socketId)
+      //if the streamer is the client, then mute them 
+      let isClient = streamer.socketId === user.socketId
+      return <VideoStream key={pos} stream={stream} streamer={streamer} isClient={isClient}/>
+    } else {
+      return null
+    }
+  }
+
+  const renderMessages = () => {
+    return messages.map((message, idx )=> {
+      return (<div className="ma2 br2" key={message.message + `${idx}`}> {message.username}: {message.message}</div>)
+    })
+  }
+
+  return(
+    <div id="chatroom-container" className="h-100 w-100">
+      <div id="chatroom" className="h-100 w-100 flex pa4">
+        <div id="column-1" className="flex-column w-third">
+          <div id="square1" className="w-100 h-50 mt3 ">
+            {renderStream(1)}
+          </div>
+          <div id="square2" className="w-100 h-50 mb3 mb6">
+            {renderStream(4)}
+          </div>
+        </div>
+        <div id="column-2" className="w-third h-100 flex flex-column-reverse pb4">
+          <form id="message-input-field" onSubmit={handleSend}className="flex items-center justify-around h-10">
+            <img
+              src={cameraIcon}
+              alt="toggle camera"
+              className={`w-auto pt2 h2 pointer${clientStream ? " o-40" : ""}`}
+              onClick={toggleBroadcast}
+            />
+            <input
+              onChange={(e) => changeMessage(e.target.value)}
+              value={message}
+              placeholder="say something..."
+              className="dib bg-washed-yellow w-60 h2 f4"
+              spellCheck="false"
+            />
+            <input
+              type="submit"
+              value="send"
+              className="dib w3 h2 br-pill white bg-dark-gray bg-animate hover-bg-mid-gray pointer tc f5"
+            />
+          </form>
+          <div id="messages-container" ref={messagesContainerRef} className="mb3 pl4 pr4 flex h-auto flex-column-reverse overflow-container tl">
+            {renderMessages().reverse()}
+          </div>
+          </div>
+        <div id="column-3" className="flex-column w-third">
+          <div id="square3" className="w-100 h-50 mt3 ">
+            {renderStream(3)}
+          </div>
+          <div id="square4" className="w-100 h-50 mb3 mb6">
+            {renderStream(2)}
+          </div>
+        </div>
+      </div>
+      <div id="usernames-container" className="bg-washed-yellow mt5 tl f3">
+        {users.length ? users.map(user => <p className="dib ma1" key={user.username}>{user.username}</p>) : `no one's here but you, ${user.username}`}
+      </div>
+    </div>
+  )
+}
+
+export default ChatRoom
