@@ -18,7 +18,7 @@ const ChatRoom = ({broadcasterConnections}) => {
 
   const [message, changeMessage] = useState("")
   const [clicked, toggleClicked] = useState(false)
-  
+
   const messagesContainerRef = useRef()
 
   useEffect(() => {
@@ -79,7 +79,7 @@ const ChatRoom = ({broadcasterConnections}) => {
   }
 
   return(
-    <div id="chatroom-container" className="h-100 w-100">
+    <div id="chatroom-container" className="h-100 w-100 helvetica">
       <div id="chatroom" className="h-100 w-100 flex pa4">
         <div id="column-1" className="flex-column w-third">
           <div id="square1" className="w-100 h-50 mt3 ">
@@ -110,7 +110,7 @@ const ChatRoom = ({broadcasterConnections}) => {
               className="dib w3 h2 br-pill white bg-dark-gray bg-animate hover-bg-mid-gray pointer tc f5"
             />
           </form>
-          <div id="messages-container" ref={messagesContainerRef} className="mb3 pl4 pr4 flex h-auto flex-column-reverse overflow-container tl">
+          <div id="messages-container" ref={messagesContainerRef} className="mb3 pl4 pr4 flex h-auto flex-column-reverse overflow-y-scroll tl">
             {renderMessages().reverse()}
           </div>
           </div>

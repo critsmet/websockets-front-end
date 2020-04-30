@@ -109,7 +109,7 @@ const App = () => {
   const handleBroadcastRequestResponse = (response) => {
     //console.log("BRRROAADCCASTTT", "...USERS", users)
     if (response.approved){
-      const constraints = { audio: true, video: { facingMode: "user", width: { min: 620 }, height: { min: 480 } }}
+      const constraints = { audio: true, video: { facingMode: "user", width: { exact: 620 }, height: { exact: 480 } }}
       //console.log("client stream!", clientStream);
       navigator.mediaDevices.getUserMedia(constraints)
       .then(stream => {

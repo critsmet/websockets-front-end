@@ -13,15 +13,6 @@ body::-webkit-scrollbar {
   display: none;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
-
 input {
   outline: none;
   border:none;
@@ -43,5 +34,5 @@ input {
 }
 
 #messages-container {
-  -ms-overflow-style: none;
+  overflow-wrap: break-word;
 }
