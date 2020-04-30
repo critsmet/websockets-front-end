@@ -17,7 +17,8 @@ const ChatRoom = ({broadcasterConnections}) => {
   const clientStream = useSelector(state => state.streams).find(stream => stream.socketId === socket.id)
 
   const [message, changeMessage] = useState("")
-
+  const [clicked, toggleClicked] = useState(false)
+  
   const messagesContainerRef = useRef()
 
   useEffect(() => {
@@ -26,16 +27,30 @@ const ChatRoom = ({broadcasterConnections}) => {
  }, [messages]);
 
   const handleSend = (e) => {
+    //sends message to server, once it's processed the client will see it too
     e.preventDefault()
     socket.emit("sentMessage", message)
     changeMessage("")
   }
 
-  const toggleBroadcast = () =>  clientStream ? endBroadcast() : socket.emit("requestBroadcast")
+  const toggleBroadcast = () =>  {
+    //when the video call button is clicked twice rapidly, this prevents two streams from beginning and keeps the icon color in sync
+    if (clicked && clientStream){
+      endBroadcast()
+      toggleClicked(false)
+    } else if (clicked && !clientStream) {
+      return null
+    } else {
+      toggleClicked(true)
+      socket.emit("requestBroadcast")
+    }
+  }
 
   const endBroadcast = () => {
     //if we had kept the broadcaster connections in the reducer, we could've used useSelector to grab them here
     //see lines 17-20 in App.js for reason why we used a ref instead of redux
+    //console.log("Closing connections");
+    //console.log(broadcasterConnections);
     broadcasterConnections.current.forEach(connectionObj => connectionObj.connection.close())
     broadcasterConnections.current = []
     dispatch({type: "removeStream", payload: socket.id})
@@ -46,11 +61,12 @@ const ChatRoom = ({broadcasterConnections}) => {
     //console.log(streams);
     let stream = streams.find(obj => obj.pos === pos)
     if (stream){
+      console.log(stream, pos);
       //find the streamer
       let streamer = [...users, user].find(user => user.socketId === stream.socketId)
-      //if the streamer is the client, then mute them 
+      //if the streamer is the client, then mute them
       let isClient = streamer.socketId === user.socketId
-      return <VideoStream key={pos} stream={stream} streamer={streamer} isClient={isClient}/>
+      return <VideoStream key={pos} streamObj={stream} streamer={streamer} isClient={isClient}/>
     } else {
       return null
     }
@@ -78,7 +94,7 @@ const ChatRoom = ({broadcasterConnections}) => {
             <img
               src={cameraIcon}
               alt="toggle camera"
-              className={`w-auto pt2 h2 pointer${clientStream ? " o-40" : ""}`}
+              className={`w-auto pt2 h2 pointer${clicked ? " o-40" : ""}`}
               onClick={toggleBroadcast}
             />
             <input
