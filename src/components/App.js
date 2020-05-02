@@ -22,7 +22,6 @@ const App = () => {
   const broadcasterConnections = useRef([])
   const watcherConnections = useRef([])
 
-  //although we will eventually add this client's stream to the streams array in the reducer, it's convenient to grab here
   let iceServersConfig = useRef(null)
 
   //i had tried in many ways to establish socket listeners and define their callbacks in a separate file, but without access to dispatch and certain state values,

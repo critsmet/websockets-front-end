@@ -23,6 +23,7 @@ const ChatRoom = ({broadcasterConnections}) => {
 
   useEffect(() => {
     //scroll to the bottom of the chat whenever a new message comes in
+    //smooth only works on chrome right now
    messagesContainerRef.current.scrollTo({top: messagesContainerRef.current.scrollHeight, behavior: "smooth"})
  }, [messages]);
 
